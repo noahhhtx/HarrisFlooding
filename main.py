@@ -1,12 +1,10 @@
 import json
-from flask import Flask, request, render_template, Response, jsonify
+from flask import Flask, request, render_template, jsonify
 import requests
 from arcgis.gis import GIS
 from arcgis import geocoding
-from arcgis.geometry import LengthUnits, Point, Geometry, project, Polygon
-from arcgis.geometry.filters import intersects
-from arcgis.features import FeatureLayer
-from arcgis.geometry.functions import buffer, simplify
+from arcgis.geometry import LengthUnits, Point, project, Polygon
+from arcgis.geometry.functions import buffer
 
 api_key = None
 with open ("apikey", "r") as f:
