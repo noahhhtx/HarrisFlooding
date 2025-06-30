@@ -43,24 +43,12 @@ def floodquery():
     })
     buffer_distance = 40
 
-    #print(point)
-
     url = "https://services1.arcgis.com/KtqvyF87KwiZmuTC/arcgis/rest/services/Harvey_Damage/FeatureServer/0/query"
 
     projected_point = project([point], in_sr=4326, out_sr=3857)[0]
-    #print(type(projected_point))
-    #print(projected_point)
-
     buffered_geometry = buffer([projected_point], distances=[buffer_distance], in_sr={"wkid": 3857}, unit = LengthUnits.METER)[0]
-    #print(type(buffered_geometry))
-    #print(buffered_geometry)
-
     buffered_geometry = project([buffered_geometry], in_sr=3857, out_sr=4326)[0]
-    #print(buffered_geometry)
-
     extent = buffered_geometry.extent
-    #print(extent)
-
     square = Polygon({"rings": [[
         [extent[0], extent[1]],
         [extent[2], extent[1]],
