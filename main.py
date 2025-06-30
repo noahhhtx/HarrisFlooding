@@ -9,7 +9,6 @@ from arcgis.features import FeatureLayer
 from arcgis.geometry.functions import buffer, simplify
 
 api_key = None
-# uhhhh
 with open ("apikey", "r") as f:
     api_key = f.read().strip()
 print(api_key)
