@@ -5,10 +5,9 @@ from arcgis.gis import GIS
 from arcgis import geocoding
 from arcgis.geometry import LengthUnits, Point, project, Polygon
 from arcgis.geometry.functions import buffer
+import os
 
-api_key = None
-with open ("apikey", "r") as f:
-    api_key = f.read().strip()
+api_key = os.environ.get("api_key")
 
 app = Flask(__name__)
 
