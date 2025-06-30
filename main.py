@@ -11,7 +11,6 @@ from arcgis.geometry.functions import buffer, simplify
 api_key = None
 with open ("apikey", "r") as f:
     api_key = f.read().strip()
-print(api_key)
 
 app = Flask(__name__)
 
