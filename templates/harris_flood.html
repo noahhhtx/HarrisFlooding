@@ -1,0 +1,301 @@
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" /> 
+		<title>Harris County Floodplains</title>
+		<style>
+			#viewDiv { padding: 0; margin: 0; height: 85%; width:75%; margin-left: auto; margin: auto auto; }
+		</style>
+		<link rel="stylesheet" href="https://js.arcgis.com/4.25/esri/themes/light/main.css" />   
+        <script src="https://js.arcgis.com/4.24/"></script>
+		<script type="text/plain" id="flood-zone">
+		var fz = $feature.FLD_ZONE;
+		var zs = $feature.ZONE_SUBTY;
+		var conc = fz + ";" + zs;
+		return Decode(conc,'A99;','1per','AE;1 PCT ANNUAL CHANCE FLOOD HAZARD CONTAINED IN CHANNEL', '1per','AE;','1per',
+			  'AH;', '1per','AO;','1per','A;','1per','VE;','1per','V;','1per','AE;COASTAL FLOODPLAIN','1per',
+			  'AE;RIVERINE FLOODPLAIN IN COASTAL AREA','1per','A;COASTAL FLOODPLAIN','1per','A;COMBINED RIVERINE AND COASTAL FLOODPLAIN','1per',
+			  'A;RIVERINE FLOODPLAIN IN COASTAL AREA','1per','VE;COASTAL FLOODPLAIN','1per','VE;COMBINED RIVERINE AND COASTAL FLOODPLAIN','1per',
+			  'VE;RIVERINE FLOODPLAIN IN COASTAL AREA','1per','V;COASTAL FLOODPLAIN','1per','V;COMBINED RIVERINE AND COASTAL FLOODPLAIN','1per',
+			  'V;RIVERINE FLOODPLAIN IN COASTAL AREA','1per','A99;AREA WITH REDUCED FLOOD RISK DUE TO LEVEE','1per','AE;1 PCT CONTAINED IN STRUCTURE, COMMUNITY ENCROACHMENT','rf','AE;1 PCT CONTAINED IN STRUCTURE, FLOODWAY','rf',
+			  'AE;ADMINISTRATIVE FLOODWAY','rf','AE;COMMUNITY ENCROACHMENT AREA','rf','AE;FLOODWAY','rf','AE;FLOODWAY CONTAINED IN CHANNEL','rf',
+			  'AE;RIVERINE FLOODWAY IN COMBINED RIVERINE AND COASTAL ZONE','rf','AO;FLOODWAY','rf','A;ADMINISTRATIVE FLOODWAY','rf',
+			  'A;FLOODWAY','rf','VE;RIVERINE FLOODWAY IN COMBINED RIVERINE AND COASTAL ZONE','rf','VE;RIVERINE FLOODWAY SHOWN IN COASTAL ZONE','rf',
+			  'V;RIVERINE FLOODWAY IN COMBINED RIVERINE AND COASTAL ZONE','rf','AE;AREA OF SPECIAL CONSIDERATION','sf','AE;COLORADO RIVER','sf',
+			  'AE;DENSITY FRINGE AREA','sf','AE;COLORADO RIVER FLOODWAY','sf','d;','ufh','X;0.2 PCT ANNUAL CHANCE FLOOD HAZARD IN COASTAL ZONE','p2per',
+			  'X;0.2 PCT ANNUAL CHANCE FLOOD HAZARD IN COMBINED RIVERINE AND COASTAL ZONE','p2per','X;0.2 PCT ANNUAL CHANCE FLOOD HAZARD','p2per',
+			  'X;0.2 PCT ANNUAL CHANCE FLOOD HAZARD CONTAINED IN CHANNEL','p2per','X;1 PCT DEPTH LESS THAN 1 FOOT','p2per',
+			  'X;1 PCT FUTURE CONDITIONS','future','X;1 PCT FUTURE CONDITIONS, FLOODWAY','future','X;1 PCT FUTURE CONDITONS, COMMUNITY ENCROACHMENT','future',
+			  'X;AREA WITH REDUCED FLOOD RISK DUE TO LEVEE','levee','na');
+		</script>
+        <script>
+			function toFixedNoRound(num, decimals) {
+				const factor = Math.pow(10, decimals);
+				return Math.floor(num * factor) / factor;
+			}
+			require(["esri/config", "esri/Map", "esri/views/MapView", "esri/layers/FeatureLayer", "esri/widgets/Legend", "esri/geometry/Extent", "esri/geometry/SpatialReference", "esri/Graphic", "esri/rest/locator", "esri/rest/query", "dojo/promise/all"], (esriConfig, Map, MapView, FeatureLayer, Legend, Extent, SpatialReference, Graphic, locator, Query, all) => {
+				var fzArcade = document.getElementById("flood-zone").text;
+				map = new Map( {basemap:"satellite"} );
+				const view = new MapView({ container: "viewDiv", map: map, zoom: 10, center: [-95.425, 29.85] });
+				view.constraints = { minZoom:10, maxZoom:20 };
+				const harris = new FeatureLayer({ url: "https://services1.arcgis.com/OImLQdU7zMzQwfGD/arcgis/rest/services/Harris_County_Boundary/FeatureServer" });
+				map.add(harris);
+				var fzlRenderer = {
+				   type: "unique-value",
+				   valueExpression: fzArcade,
+				   uniqueValueInfos: [{
+					 value: "1per",
+					 symbol: {
+						type: "simple-fill",  // autocasts as new SimpleFillSymbol()
+						color: "#00c3ff",
+						outline: {
+						  width: 0.5,
+						  color: [ 0, 0, 0, 0.2 ]
+						}
+					  },
+					 label: "1% Annual Chance Flood Hazard"
+				   }, {
+					 value: "rf",
+					 symbol: {
+						type: "simple-fill",
+						color: [255, 0, 0, 255],
+						style: "backward-diagonal",
+						outline: {
+						  width: 1,
+						  color: [ 0, 0, 0, 0 ]
+						}
+					  },
+					 label: "Regulatory Floodway"
+				   }, {
+					 value: "sf",
+					 symbol: {
+						type: "simple-fill",
+						color: [255, 0, 0, 255],
+						style: "solid",
+						outline: {
+						  width: 1,
+						  color: [ 0, 0, 0, 0 ]
+						}
+					  },
+					 label: "Special Floodway"
+				   }, {
+					 value: "ufh",
+					 symbol: {
+						type: "simple-fill",
+						color: [242, 230, 115, 255],
+						style: "solid",
+						outline: {
+						  width: 1,
+						  color: [ 0, 0, 0, 0 ]
+						}
+					  },
+					 label: "Area of Undetermined Flood Hazard"
+				   }, {
+					 value: "p2per",
+					 symbol: {
+						type: "simple-fill",
+						color: [255, 128, 0, 255],
+						style: "solid",
+						outline: {
+						  width: 1,
+						  color: [ 0, 0, 0, 0 ]
+						}
+					  },
+					 label: "0.2% Annual Chance Flood Hazard"
+				   }, {
+					 value: "future",
+					 symbol: {
+						type: "simple-fill",
+						color: [0, 0, 0, 255],
+						style: "solid",
+						outline: {
+						  width: 1,
+						  color: [ 0, 0, 0, 0 ]
+						}
+					  },
+					 label: "Future Conditions 1% Annual Chance Flood Hazard"
+				   }, {
+					 value: "levee",
+					 symbol: {
+						type: "simple-fill",
+						color: [0, 0, 0, 255],
+						style: "solid",
+						outline: {
+						  width: 1,
+						  color: [ 0, 0, 0, 0 ]
+						}
+					  },
+					 label: "Area with Reduced Risk Due to Levee"
+				   }]
+				 };
+				const floodways = new FeatureLayer({ url: "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
+					title: "Flood Zone", visible: true, renderer: fzlRenderer
+				});
+				map.add(floodways);
+				const flood_boundaries = new FeatureLayer({ url: "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/27", legendEnabled: false });
+				map.add(flood_boundaries);
+				let legend = new Legend({ view: view });
+				view.ui.add(legend, { position: "bottom-left" });
+				
+				let addrForm = document.getElementById("addressForm");
+				addrForm.addEventListener("submit", (e) => {
+					e.preventDefault();
+					view.graphics.removeAll();
+					view.popup.close();
+					let a = document.getElementById("addr").value;
+					console.log(a);
+					document.getElementById("addrText").innerText = a;
+					element = document.getElementById("resultsTable");
+					hidden = element.getAttribute("hidden");
+					if (!hidden) { element.setAttribute("hidden", "hidden"); }
+					document.getElementById("addr").setAttribute("style", "width:72%");
+					document.getElementById("loading").removeAttribute("hidden");
+				
+					view.when(()=>{
+				
+						const geocodingServiceUrl = "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer";
+						params = { address: {"address": a} };
+
+						fetch('/geocode', {
+							method: 'POST', headers: {
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify(params)
+						}).then(response => response.json()).then( (results) => { console.log(results); showResult(results); } );
+
+						async function showResult(results) {
+							console.log(results);
+							let element = ""; let hidden = "";
+							if (Object.keys(results).length > 0) {
+							const result = results;
+							console.log(result.long); console.log(result.lat);
+							const long_ = result.long;
+							const lat_ = result.lat;
+							let flood_damage_val = 0;
+							let flood_results = null;
+							try {
+								flood_results = await fetch('/floodquery', {
+									method: 'POST', headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify({x: long_, y: lat_})
+								});
+								flood_results = await flood_results.json();
+								flood_damage_val = flood_results.flood_depth;
+							} catch (error) { console.log("oops!") }
+							console.log(flood_results);
+							const long_r = toFixedNoRound(result.long, 4);
+							const lat_r = toFixedNoRound(result.lat, 4);
+							const point = {
+								type: "point",
+								longitude: long_,
+								latitude: lat_
+							};
+							console.log(result.address);
+							document.getElementById("addrText").innerText = result.address;
+							element = document.getElementById("resultsTable");
+							hidden = element.getAttribute("hidden");
+							if (hidden) { element.removeAttribute("hidden"); }
+
+							const query = floodways.createQuery();
+							query.geometry = point;
+							query.spatialRelationship = "intersects"; // or "contains" for polygon layers
+							query.returnGeometry = false;
+							query.outFields = ["FLD_ZONE", "ZONE_SUBTY"];
+								
+							let floodway = "Unknown";
+								
+							let zoneRes = null;
+							try { zoneRes = await floodways.queryFeatures(query); }
+							catch (error) { console.log("oops!") }
+								
+							console.log("queries finished.");
+									
+							if (zoneRes.features.length) {
+								const f = zoneRes.features[0];
+								let zone = f.attributes["FLD_ZONE"];
+								let subtype = f.attributes["ZONE_SUBTY"];
+								let desc = subtype || ((zone === "A" || zone === "AE") ? "1 PCT ANNUAL CHANCE FLOOD HAZARD" : "MISC.");
+								floodway = `${zone}; ${desc}`;
+								console.log(floodway);
+							} else { console.log("hmm.."); }
+							document.getElementById("floodZoneColumn").innerText = floodway;
+
+							document.getElementById("floodDepthColumn").innerText = `${flood_damage_val.toFixed(5)} ft.`;
+									
+							try {
+								
+								view.graphics.add(new Graphic({
+									symbol: {
+										type: "simple-marker",
+										color: "#000000",
+										size: "8px",
+											outline: {
+												color: "#ffffff",
+												width: "1px"
+											}
+										},
+									geometry: point,
+									attributes: {
+										title: "Address",
+										address: result.address,
+									},
+									popupTemplate: {
+										title: "{title}",
+										content: result.address + "<br><b>Flood Zone:</b> " + floodway + "<br><b>Maximum Harvey Inundation Depth:</b> " + flood_damage_val + " ft." + "<br><b>Location:</b> " + long_r + ", " + lat_r
+									}
+								}));
+										 
+								const g = view.graphics.getItemAt(0);
+									
+								view.goTo({
+									target: [long_, lat_],
+									zoom: 17
+								});
+										
+								view.popup.open({
+									features: [g],
+									location: [long_, lat_]
+								});
+									
+							} catch (error) { console.log("Could not open popup."); }
+								
+						} else {
+							console.log("No address found.");
+							document.getElementById("addrText").innerText = "Address not found.";
+								
+							element = document.getElementById("resultsTable");
+							hidden = element.getAttribute("hidden");
+							if (!hidden) { element.setAttribute("hidden", "hidden"); }
+						}
+						document.getElementById("loading").setAttribute("hidden", "hidden");
+						document.getElementById("addr").setAttribute("style", "width:82.5%");
+					}
+						  
+					});
+				});
+			});
+		</script>
+	</head>
+	<body>
+		<h1 style="text-align:center;">Harris County Flood Information</h1>
+		<form id="addressForm" action="" style="margin-left: auto; margin-right: auto; width:50%;">
+			<label for="addr">Address: </label>
+			<input type="text" id="addr" name="addr" style="width:82.5%">
+			<input type="submit" value="Search">
+			<b id="loading" hidden="hidden">Loading...</b>
+		</form>
+		<div id="viewDiv"></div>
+		<div id="results" style="margin-left: auto; margin-right: auto; width:25%;">
+			<p style="text-align:center;" id="addrText"></p>
+			<table id="resultsTable" style="width:100%" hidden="hidden">
+				<tr>
+					<td style="text-align:left;"><b>FEMA Flood Zone</b></td>
+					<td style="text-align:right;" id="floodZoneColumn"></td>
+				</tr>
+				<tr>
+					<td style="text-align:left;"><b>Maximum Harvey Inundation Depth</b></td>
+					<td style="text-align:right;" id="floodDepthColumn"></td>
+				</tr>
+			</table>
+		</div>
+	</body>
+</html>
