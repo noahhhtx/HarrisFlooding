@@ -86,3 +86,6 @@ def floodquery():
 
     print("Est. Flood Depth:", flood_depth)
     return jsonify({"flood_depth": flood_depth})
+
+if __name__ == "__main__":
+    app.run()
