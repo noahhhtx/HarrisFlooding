@@ -1,11 +1,10 @@
 import json
 from flask import Flask, request, render_template, jsonify
 import requests
-from arcgis.gis import GIS
-from arcgis import geocoding
-from arcgis.geometry import LengthUnits, Point, project, Polygon
-from arcgis.geometry.functions import buffer
+import shapely
 import os
+from geopy.geocoders import ArcGIS
+import geopandas as gpd
 
 api_key = os.environ.get("api_key")
 
@@ -17,52 +16,50 @@ def home():
 
 @app.route("/geocode", methods=['POST'])
 def geocode():
-    gis = GIS("https://www.arcgis.com", api_key=api_key)
+    #gis = GIS("https://www.arcgis.com", api_key=api_key)
+    geolocator = ArcGIS(user_agent="Noah's Geocoder")
     data = request.get_json()
-    addr = data.get("address")
-    coder = geocoding.Geocoder("https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer", gis)
-    result = coder.geocode(addr)
-    print(len(result))
-    if len(result) > 0:
-        for r in result:
-            print(r["location"])
-        return jsonify({"long": result[0]["location"]["x"], "lat": result[0]["location"]["y"], "address": result[0]["address"]})
-    else:
+    addr = data.get("address").get("address")
+    print(addr)
+    try:
+        location = geolocator.geocode(addr, timeout=10)
+        print("found")
+        print(location)
+        print("uhhhhh")
+        return jsonify({"long": location.longitude, "lat": location.latitude, "address": location.address})
+    except Exception as e:
+        print("there was an error!")
+        print(e)
         return jsonify({})
 
 @app.route("/floodquery", methods=["POST"])
 def floodquery():
-    gis = GIS("https://www.arcgis.com", api_key=api_key)
     data = request.get_json()
 
-    point = Point({
-        "x": data["x"],
-        "y": data["y"],
-        "spatialReference": {"wkid": 4326}
-    })
-    buffer_distance = 40
+    point = shapely.Point(data["x"], data["y"])
+    buffer_distance = 30 / 3.28084
+
+    point_gdf = gpd.GeoDataFrame([1], geometry=[point], crs="epsg:4326")
+    gdf_utm = point_gdf.to_crs(epsg=32618)
+    buffered_point_utm = gdf_utm.buffer(buffer_distance, cap_style=3)
+    buffered_point_wgs84 = buffered_point_utm.to_crs(epsg=4326)
+    buffered_polygon = buffered_point_wgs84.geometry[0]
 
     url = "https://services1.arcgis.com/KtqvyF87KwiZmuTC/arcgis/rest/services/Harvey_Damage/FeatureServer/0/query"
 
-    projected_point = project([point], in_sr=4326, out_sr=3857)[0]
-    buffered_geometry = buffer([projected_point], distances=[buffer_distance], in_sr={"wkid": 3857}, unit = LengthUnits.METER)[0]
-    buffered_geometry = project([buffered_geometry], in_sr=3857, out_sr=4326)[0]
-    extent = buffered_geometry.extent
-    square = Polygon({"rings": [[
-        [extent[0], extent[1]],
-        [extent[2], extent[1]],
-        [extent[2], extent[3]],
-        [extent[0], extent[3]],
-        [extent[0], extent[1]]
-    ]], "spatialReference": {"wkid": 4326}})
-
     print("well we got this far")
+
+    point_geojson = shapely.to_geojson(buffered_polygon)
+    rings_str = point_geojson[point_geojson.find("["):-1]
+    print(rings_str)
+    pointstr = "{" + f'"rings": {rings_str}, "spatialReference": ' + "{" + '"wkid": 4326' + "}" + "}"
+    print(pointstr)
 
     params = {
 
         "token": api_key,
         "f": "json",
-        "geometry": json.dumps(square),
+        "geometry": pointstr,
         "geometryType": "esriGeometryPolygon",
         "spatialRel": "esriSpatialRelIntersects",
         "outFields": "MAX_IN_DEP",
