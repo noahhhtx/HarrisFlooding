@@ -148,7 +148,8 @@
 					element = document.getElementById("resultsTable");
 					hidden = element.getAttribute("hidden");
 					if (!hidden) { element.setAttribute("hidden", "hidden"); }
-					document.getElementById("addr").setAttribute("style", "width:72%");
+					search_hidden = document.getElementById("addressForm").getAttribute("hidden");
+					if (!search_hidden) { document.getElementById("addressForm").setAttribute("hidden", "hidden"); }
 					document.getElementById("loading").removeAttribute("hidden");
 				
 					view.when(()=>{
@@ -267,7 +268,8 @@
 							if (!hidden) { element.setAttribute("hidden", "hidden"); }
 						}
 						document.getElementById("loading").setAttribute("hidden", "hidden");
-						document.getElementById("addr").setAttribute("style", "width:82.5%");
+						search_hidden = document.getElementById("addressForm").getAttribute("hidden");
+						if (search_hidden) { document.getElementById("addressForm").removeAttribute("hidden"); }
 					}
 						  
 					});
@@ -278,11 +280,13 @@
 	<body>
 		<h1 style="text-align:center;">Harris County Flood Information</h1>
 		<form id="addressForm" action="" style="margin-left: auto; margin-right: auto; width:50%;">
-			<label for="addr">Address: </label>
+			<label for="addr" style="text-align:center;">Address: </label>
 			<input type="text" id="addr" name="addr" style="width:82.5%">
-			<input type="submit" value="Search">
-			<b id="loading" hidden="hidden">Loading...</b>
+			<input type="submit" style = "text-align:center;" value="Search">
 		</form>
+		<p id="loading" style="text-align:center;" hidden="hidden">
+			<b>Loading...</b>
+		</p>
 		<div id="viewDiv"></div>
 		<div id="results" style="margin-left: auto; margin-right: auto; width:25%;">
 			<p style="text-align:center;" id="addrText"></p>
